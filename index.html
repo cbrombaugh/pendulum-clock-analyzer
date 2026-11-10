@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#172554">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Clock Analyzer">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Pendulum Clock Analyzer</title>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="eyebrow">OFFLINE CLOCK-SERVICING TOOL</div>
+      <h1>Pendulum Clock Analyzer</h1>
+      <p class="intro">Prototype 1 · Tick and tock detector</p>
+    </header>
+
+    <section class="status-card" aria-live="polite">
+      <div class="status-line"><span id="statusDot" class="dot"></span><strong id="statusText">Not listening</strong></div>
+      <p id="statusHelp">Place your iPhone near the clock, then tap Start listening.</p>
+      <div class="meter"><div id="levelBar"></div></div>
+      <div class="meter-labels"><span>Microphone level</span><span id="levelText">—</span></div>
+    </section>
+
+    <section class="controls">
+      <button id="startBtn" class="primary">Start listening</button>
+      <button id="stopBtn" class="secondary" disabled>Stop</button>
+      <button id="resetBtn" class="quiet">Reset measurements</button>
+    </section>
+
+    <section class="grid">
+      <article class="metric">
+        <div class="label">Last interval</div>
+        <div class="value" id="lastInterval">—</div>
+        <div class="unit">seconds</div>
+      </article>
+      <article class="metric">
+        <div class="label">Detected sounds</div>
+        <div class="value" id="eventCount">0</div>
+        <div class="unit">ticks / tocks</div>
+      </article>
+      <article class="metric">
+        <div class="label">Average interval A</div>
+        <div class="value" id="avgA">—</div>
+        <div class="unit">seconds</div>
+      </article>
+      <article class="metric">
+        <div class="label">Average interval B</div>
+        <div class="value" id="avgB">—</div>
+        <div class="unit">seconds</div>
+      </article>
+    </section>
+
+    <section class="result-card">
+      <h2>Beat comparison</h2>
+      <div class="comparison">
+        <div><span class="label">Difference</span><strong id="beatDifference">—</strong><small>milliseconds</small></div>
+        <div><span class="label">Status</span><strong id="beatStatus">Waiting</strong><small id="beatAdvice">Need more detected intervals</small></div>
+      </div>
+      <p class="note">A and B are alternating intervals. The app does not yet know which one is the clock's leftward or rightward swing; that mapping must be established during calibration.</p>
+    </section>
+
+    <section class="result-card">
+      <h2>Recent detections</h2>
+      <ol id="eventList" class="events"><li class="empty">No sounds detected yet.</li></ol>
+    </section>
+
+    <details class="help">
+      <summary>Testing tips and limitations</summary>
+      <ul>
+        <li>Test in a quiet room. Start with the phone about 15–30 cm (6–12 in) from the clock.</li>
+        <li>Keep the phone still and avoid touching the case while measuring.</li>
+        <li>If it misses ticks, move the phone closer. If it detects room noise, move it farther away or reduce background noise.</li>
+        <li>Allow microphone access when Safari asks. Listening works only while this app is open in the foreground.</li>
+        <li>This is an early detector prototype. It reports detected sound intervals; it does not yet calculate daily gain/loss, bob movement, or which side to raise.</li>
+      </ul>
+    </details>
+
+    <footer>All audio processing stays on this iPhone. No audio is recorded, saved, or uploaded.</footer>
+  </main>
+  <script src="./app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
