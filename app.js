@@ -4,6 +4,7 @@
   let stream = null, audioContext = null, analyser = null, source = null, raf = 0;
   let listening = false, previousAbove = false, lastEventTime = null;
   let noiseFloor = 0.002, threshold = 0.004, lastAccepted = -Infinity;
+  let calibrationUntil = 0, calibrationSamples = [];
   let eventTimes = [], intervals = [], displayEvents = [];
   let audioData = null;
   const MIN_GAP_MS = 140;
@@ -65,13 +66,32 @@
     if (!listening || !analyser) return;
     analyser.getByteTimeDomainData(audioData);
     const level = rmsFromBuffer(audioData);
-    // Track a slowly changing ambient level, but do not let a tick immediately raise it.
-    if (level < threshold) noiseFloor = noiseFloor * 0.995 + level * 0.005;
-    threshold = Math.max(0.0035, noiseFloor * 2.0);
+    const now = performance.now();
+    // First measure the room's background level so a steady hum does not hold
+    // the detector permanently above its trigger threshold.
+    if (now < calibrationUntil) {
+      calibrationSamples.push(level);
+      const pct = Math.min(100, level * 4000);
+      $("levelBar").style.width = `${pct}%`;
+      $("levelText").textContent = level.toFixed(3);
+      raf = requestAnimationFrame(listenLoop);
+      return;
+    }
+    if (calibrationSamples.length) {
+      calibrationSamples.sort((a, b) => a - b);
+      noiseFloor = calibrationSamples[Math.floor(calibrationSamples.length * 0.2)];
+      threshold = noiseFloor + Math.max(0.0006, noiseFloor * 0.12);
+      calibrationSamples = [];
+      setStatus("Listening", "Background measured. Keep this screen open while measuring.", true);
+    }
+    // Slowly follow quieter background changes without following loud ticks.
+    if (level < threshold) {
+      noiseFloor = noiseFloor * 0.999 + level * 0.001;
+      threshold = noiseFloor + Math.max(0.0006, noiseFloor * 0.12);
+    }
     const pct = Math.min(100, level * 4000);
     $("levelBar").style.width = `${pct}%`;
     $("levelText").textContent = level.toFixed(3);
-    const now = performance.now();
     const above = level > threshold;
     if (above && !previousAbove && now - lastAccepted >= MIN_GAP_MS) acceptEvent(now, level);
     previousAbove = above;
@@ -92,8 +112,10 @@
       source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
       listening = true; previousAbove = false; lastAccepted = -Infinity;
+      calibrationSamples = [];
+      calibrationUntil = performance.now() + 1500;
       startBtn.disabled = true; stopBtn.disabled = false;
-      setStatus("Listening", "Listening in the foreground. Keep this screen open while measuring.", true);
+      setStatus("Calibrating microphone", "Keep the phone still and quiet for 1.5 seconds while the app measures background sound.", true);
       listenLoop();
     } catch (err) {
       setStatus("Could not start microphone", err && err.name === "NotAllowedError" ? "Microphone permission was denied. Allow microphone access for this site in iPhone Settings, then try again." : `Microphone error: ${err.message || err}`);
