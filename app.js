@@ -1,7 +1,7 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const startBtn = $("startBtn"), stopBtn = $("stopBtn"), resetBtn = $("resetBtn");
-  let stream = null, audioContext = null, analyser = null, source = null, raf = 0;
+  let stream = null, audioContext = null, analyser = null, source = null, filter = null, raf = 0;
   let listening = false, previousAbove = false, lastEventTime = null;
   let noiseFloor = 0.002, threshold = 0.004, lastAccepted = -Infinity;
   let calibrationUntil = 0, calibrationSamples = [];
@@ -105,12 +105,18 @@
       stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation:false, noiseSuppression:false, autoGainControl:false}, video:false});
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
       if (audioContext.state === "suspended") await audioContext.resume();
+      // A short analysis window preserves brief mechanical tick transients.
+      filter = audioContext.createBiquadFilter();
+      filter.type = "highpass";
+      filter.frequency.value = 700;
+      filter.Q.value = 0.7;
       analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
+      analyser.fftSize = 512;
       audioData = new Uint8Array(analyser.fftSize);
       analyser.smoothingTimeConstant = 0;
       source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
+      source.connect(filter);
+      filter.connect(analyser);
       listening = true; previousAbove = false; lastAccepted = -Infinity;
       calibrationSamples = [];
       calibrationUntil = performance.now() + 1500;
