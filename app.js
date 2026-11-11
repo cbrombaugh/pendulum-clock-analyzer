@@ -6,7 +6,7 @@
   let noiseFloor = 0.002, threshold = 0.004, lastAccepted = -Infinity;
   let calibrationUntil = 0, calibrationSamples = [];
   let eventTimes = [], intervals = [], displayEvents = [];
-  let audioData = null;
+  let audioData = null, displayedPeak = 0, peakHoldUntil = 0;
   const MIN_GAP_MS = 140;
 
   function setStatus(text, help, live=false) {
@@ -91,7 +91,12 @@
     }
     const pct = Math.min(100, level * 4000);
     $("levelBar").style.width = `${pct}%`;
-    $("levelText").textContent = level.toFixed(3);
+    // Briefly hold the highest recent reading so short ticks are visible.
+    if (level >= displayedPeak || now > peakHoldUntil) {
+      displayedPeak = level;
+      peakHoldUntil = now + 300;
+    }
+    $("levelText").textContent = displayedPeak.toFixed(3);
     const above = level > threshold;
     if (above && !previousAbove && now - lastAccepted >= MIN_GAP_MS) acceptEvent(now, level);
     previousAbove = above;
@@ -108,7 +113,7 @@
       // A short analysis window preserves brief mechanical tick transients.
       filter = audioContext.createBiquadFilter();
       filter.type = "highpass";
-      filter.frequency.value = 700;
+      filter.frequency.value = 250;
       filter.Q.value = 0.7;
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
