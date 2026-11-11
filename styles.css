@@ -13,7 +13,7 @@ h1 { font-size: clamp(27px, 7vw, 36px); line-height: 1.08; margin: 8px 0 6px; le
 #statusHelp { color: #617087; font-size: 14px; margin: 9px 0 14px; }
 .meter { height: 9px; border-radius: 10px; background: #e7edf4; overflow: hidden; }
 #levelBar { height: 100%; width: 0%; background: #3678d8; transition: width .08s linear; }
-.meter-labels { display: flex; justify-content: space-between; margin-top: 7px; color: #738198; font-size: 11px; }
+.meter-labels { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; color: #52647d; font-size: 13px; }\n#levelText { color: #142033; font-size: 30px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
 .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 13px; }
 button { border: 0; border-radius: 12px; min-height: 48px; padding: 12px; font-size: 15px; font-weight: 700; }
 button:disabled { opacity: .4; }
