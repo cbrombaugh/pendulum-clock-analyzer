@@ -3,8 +3,9 @@
   const startBtn = $("startBtn"), stopBtn = $("stopBtn"), resetBtn = $("resetBtn");
   let stream = null, audioContext = null, analyser = null, source = null, raf = 0;
   let listening = false, previousAbove = false, lastEventTime = null;
-  let noiseFloor = 0.002, threshold = 0.012, lastAccepted = -Infinity;
+  let noiseFloor = 0.002, threshold = 0.004, lastAccepted = -Infinity;
   let eventTimes = [], intervals = [], displayEvents = [];
+  let audioData = null;
   const MIN_GAP_MS = 140;
 
   function setStatus(text, help, live=false) {
@@ -62,13 +63,12 @@
   }
   function listenLoop() {
     if (!listening || !analyser) return;
-    const data = new Uint8Array(analyser.fftSize);
-    analyser.getByteTimeDomainData(data);
-    const level = rmsFromBuffer(data);
+    analyser.getByteTimeDomainData(audioData);
+    const level = rmsFromBuffer(audioData);
     // Track a slowly changing ambient level, but do not let a tick immediately raise it.
     if (level < threshold) noiseFloor = noiseFloor * 0.995 + level * 0.005;
-    threshold = Math.max(0.009, noiseFloor * 3.5, 0.012);
-    const pct = Math.min(100, level * 1600);
+    threshold = Math.max(0.0035, noiseFloor * 2.0);
+    const pct = Math.min(100, level * 4000);
     $("levelBar").style.width = `${pct}%`;
     $("levelText").textContent = level.toFixed(3);
     const now = performance.now();
@@ -87,6 +87,7 @@
       if (audioContext.state === "suspended") await audioContext.resume();
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 2048;
+      audioData = new Uint8Array(analyser.fftSize);
       analyser.smoothingTimeConstant = 0;
       source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
@@ -102,7 +103,7 @@
     listening = false; cancelAnimationFrame(raf);
     if (stream) stream.getTracks().forEach(t => t.stop());
     if (audioContext) { try { await audioContext.close(); } catch(e) {} }
-    stream = audioContext = analyser = source = null;
+    stream = audioContext = analyser = source = audioData = null;
     startBtn.disabled = false; stopBtn.disabled = true;
     setStatus("Not listening", "Tap Start listening when you are ready to measure.");
     $("levelBar").style.width = "0%"; $("levelText").textContent = "—";
